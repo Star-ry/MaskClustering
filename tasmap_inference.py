@@ -1,15 +1,58 @@
 import os
 from tqdm import tqdm
 import time
-from utils.config import get_args
+import argparse
+import json
+from dataset.tasmap import TASMapDataset
+from dataset.scannet import ScanNetDataset
 
-CUDA_LIST = [0]
+
+def update_args(args):
+    config_path = f'configs/{args.config}.json'
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    for key in config:
+        setattr(args, key, config[key])
+    return args
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seq_name', type=str, default='scene0000_00')
+    parser.add_argument('--seq_name_list', type=str)
+    parser.add_argument('--config', type=str, default='tasmap')
+    parser.add_argument('--debug', action="store_true")
+
+    args = parser.parse_args()
+    args = update_args(args)
+    return args
+
+def get_dataset(args):
+    if args.dataset == 'scannet':
+        dataset = ScanNetDataset(args.seq_name)
+    elif args.dataset == 'tasmap':
+        dataset = TASMapDataset(args.seq_name)
+    else:
+        print(args.dataset)
+        raise NotImplementedError
+    return dataset
+
+
+# def execute_commands(commands_list, command_type, process_num):
+#     print('====> Start', command_type)
+#     from multiprocessing import Pool
+#     pool = Pool(process_num)
+#     for _ in tqdm(pool.imap_unordered(os.system, commands_list), total=len(commands_list)):
+#         pass
+#     pool.close()
+#     pool.join()
+#     pool.terminate()
+#     print('====> Finish', command_type)
 
 def execute_commands(commands_list, command_type, process_num):
     print('====> Start', command_type)
     from multiprocessing import Pool
     pool = Pool(process_num)
-    for _ in tqdm(pool.imap_unordered(os.system, commands_list), total=len(commands_list)):
+    for _ in pool.imap_unordered(os.system, commands_list):
         pass
     pool.close()
     pool.join()
@@ -19,10 +62,6 @@ def execute_commands(commands_list, command_type, process_num):
 def get_seq_name_list(dataset):
     if dataset == 'scannet':
         file_path = 'splits/scannet_test.txt'
-    elif dataset == 'scannetpp':
-        file_path = 'splits/scannetpp.txt'
-    elif dataset == 'matterport3d':
-        file_path = 'splits/matterport3d.txt'
     elif dataset == 'tasmap':
         file_path = 'splits/tasmap.txt'
     with open(file_path, 'r') as f:
@@ -69,14 +108,7 @@ def main(args):
         root = 'data/tasmap/processed'
         image_path_pattern = 'color/*.jpg' # stride = 1
         gt = 'data/tasmap/gt'
-    elif dataset == 'scannetpp':
-        root = 'data/scannetpp/data'
-        image_path_pattern = 'iphone/rgb/*0.jpg'
-        gt = 'data/scannetpp/gt'
-    elif dataset == 'matterport3d':
-        root = 'data/matterport3d/scans'
-        image_path_pattern = '*/undistorted_color_images/*.jpg' # stride = 1
-        gt = 'data/matterport3d/gt'
+
 
     t0 = time.time()
     seq_name_list = get_seq_name_list(dataset)
@@ -89,24 +121,21 @@ def main(args):
     # # Step 2: Mask clustering using our proposed method.
     parallel_compute(f'python main.py --config {config} --seq_name_list %s', 'mask clustering', 'cuda', CUDA_LIST, seq_name_list)
     
-    # Step 3: Evaluate the class-agnostic results.
-    os.system(f'python -m evaluation.evaluate --pred_path data/prediction/{config}_class_agnostic --gt_path {gt} --dataset {dataset} --no_class')
-
-    # Step 4: Get the open-vocabulary semantic features for each 2D masks.
-    parallel_compute(f'python -m semantics.get_open-voc_features --config {config}  --seq_name_list %s', 'get open-vocabulary semantic features using CLIP', 'cuda', CUDA_LIST, seq_name_list)
-
-    # Step 5: Get the text CLIP features for each label.
-    get_label_text_feature(CUDA_LIST[0])
-    
-    # Step 6: Get labels for each 3D instances.
-    parallel_compute(f'python -m semantics.open-voc_query --config {config}', 'get text labels', 'cpu', CUDA_LIST, seq_name_list)
-    
-    # Step 7: Evaluate the class-aware results.
-    os.system(f'python -m evaluation.evaluate --pred_path data/prediction/{config} --gt_path {gt} --dataset {dataset}')
-
     print('total time', (time.time() - t0)//60, 'min')
     print('Average time', (time.time() - t0) / len(seq_name_list), 'sec')
 
+    # Visualize Mask
+    parallel_compute(f'python -m visualize.vis_mask --config {config} --seq_name %s', 'Visualize Mask', 'cuda', CUDA_LIST, seq_name_list)
+
+    # Visualize Scene
+    parallel_compute(f'python -m visualize.vis_scene --config {config} --seq_name %s', 'Visualize Scene', 'cuda', CUDA_LIST, seq_name_list)
+
+    print("====> To Visualize in PyViz3D:")
+    for seq_name in seq_name_list:
+        print(f"python -m http.server 6010 --directory /workspace/MaskClustering/data/vis/{seq_name}")
+
+
 if __name__ == '__main__':
+    CUDA_LIST = [0]
     args = get_args()
     main(args)
