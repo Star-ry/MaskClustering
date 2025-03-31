@@ -41,8 +41,11 @@ def build_point_in_mask_matrix(args, scene_points, frame_list, dataset):
     global_frame_mask_list = []
     mask_point_clouds = {}
     
-    iterator = tqdm(enumerate(frame_list), total=len(frame_list)) if args.debug else enumerate(frame_list)
+    # iterator = tqdm(enumerate(frame_list), total=len(frame_list)) if args.debug else enumerate(frame_list)
+    iterator = tqdm(enumerate(frame_list), total=len(frame_list), desc="Step 1-1: Build Point in Mask")
     for frame_cnt, frame_id in iterator:
+        if frame_id=='00000585':
+            print()
         mask_dict, frame_point_cloud_ids = frame_backprojection(dataset, scene_points, frame_id)
         if len(frame_point_cloud_ids) == 0:
             continue
@@ -100,6 +103,8 @@ def process_one_mask(point_in_mask_matrix, boundary_points, mask_point_cloud, fr
     contained_mask = torch.zeros(len(global_frame_mask_list))
 
     valid_mask_point_cloud = mask_point_cloud - boundary_points
+    # if len(valid_mask_point_cloud) < 10:
+    #     print()
     mask_point_cloud_info = point_in_mask_matrix[list(valid_mask_point_cloud), :]
     
     possibly_visible_frames = np.where(np.sum(mask_point_cloud_info, axis=0) > 0)[0]
@@ -140,8 +145,11 @@ def process_masks(frame_list, global_frame_mask_list, point_in_mask_matrix, boun
     contained_masks = []
     undersegment_mask_ids = []
 
-    iterator = tqdm(global_frame_mask_list) if args.debug else global_frame_mask_list
+    # iterator = tqdm(global_frame_mask_list) if args.debug else global_frame_mask_list
+    iterator = tqdm(global_frame_mask_list, desc="Step 1-2: Process Masks")
     for frame_id, mask_id in iterator:
+        # if frame_id=='00000585':
+        #     print()
         valid, visible_frame, contained_mask = process_one_mask(point_in_mask_matrix, boundary_points, mask_point_clouds[f'{frame_id}_{mask_id}'], frame_list, global_frame_mask_list, args)
         visible_frames.append(visible_frame)
         contained_masks.append(contained_mask)

@@ -6,8 +6,9 @@ from utils.geometry import denoise
 from torch.nn.utils.rnn import pad_sequence
 
 COVERAGE_THRESHOLD = 0.3
-DISTANCE_THRESHOLD = 0.03
+DISTANCE_THRESHOLD = 0.005
 FEW_POINTS_THRESHOLD = 25
+# FEW_POINTS_THRESHOLD = 3
 DEPTH_TRUNC = 20
 BBOX_EXPAND = 0.1
 
@@ -29,7 +30,7 @@ def get_neighbor(valid_points, scene_points, lengths_1, lengths_2):
 
 def get_depth_mask(depth):
     depth_tensor = torch.from_numpy(depth).cuda()
-    depth_mask = torch.logical_and(depth_tensor > 0, depth_tensor < DEPTH_TRUNC).reshape(-1)
+    depth_mask = torch.logical_and(depth_tensor > 0, depth_tensor <= DEPTH_TRUNC).reshape(-1)
     return depth_mask
 
 

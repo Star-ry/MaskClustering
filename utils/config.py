@@ -1,5 +1,6 @@
 import argparse
 from dataset.scannet import ScanNetDataset
+from dataset.tasmap import TASMapDataset
 from dataset.matterport import MatterportDataset
 from dataset.scannetpp import ScanNetPPDataset
 from dataset.demo import DemoDataset
@@ -15,9 +16,9 @@ def update_args(args):
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--seq_name', type=str)
+    parser.add_argument('--seq_name', type=str, default='scene0000_00')
     parser.add_argument('--seq_name_list', type=str)
-    parser.add_argument('--config', type=str, default='scannet')
+    parser.add_argument('--config', type=str, default='tasmap')
     parser.add_argument('--debug', action="store_true")
 
     args = parser.parse_args()
@@ -27,6 +28,8 @@ def get_args():
 def get_dataset(args):
     if args.dataset == 'scannet':
         dataset = ScanNetDataset(args.seq_name)
+    elif args.dataset == 'tasmap':
+        dataset = TASMapDataset(args.seq_name)
     elif args.dataset == 'scannetpp':
         dataset = ScanNetPPDataset(args.seq_name)
     elif args.dataset == 'matterport3d':

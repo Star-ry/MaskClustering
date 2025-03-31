@@ -6,7 +6,6 @@ import json
 from dataset.tasmap import TASMapDataset
 from dataset.scannet import ScanNetDataset
 
-
 def update_args(args):
     config_path = f'configs/{args.config}.json'
     with open(config_path, 'r') as f:
@@ -114,9 +113,9 @@ def main(args):
     seq_name_list = get_seq_name_list(dataset)
     print('There are %d scenes' % len(seq_name_list))
     
-    # # Step 1: use Cropformer to get 2D instance masks for all sequences.
-    # parallel_compute(f'python third_party/detectron2/projects/CropFormer/demo_cropformer/mask_predict.py --config-file third_party/detectron2/projects/CropFormer/configs/entityv2/entity_segmentation/cropformer_hornet_3x.yaml --root {root} --image_path_pattern {image_path_pattern} --dataset {args.dataset} --seq_name_list %s --opts MODEL.WEIGHTS {cropformer_path}', 'predict mask', 'cuda', CUDA_LIST, seq_name_list)
-    parallel_compute(f'python third_party/detectron2/projects/CropFormer/demo_cropformer/mask_predict.py --config-file /workspace/MaskClustering/third_party/detectron2/projects/CropFormer/configs/entityv2/entity_segmentation/mask2former_hornet_3x.yaml --root {root} --image_path_pattern {image_path_pattern} --dataset {args.dataset} --seq_name_list %s --opts MODEL.WEIGHTS {cropformer_path}', 'predict mask', 'cuda', CUDA_LIST, seq_name_list)
+    # # # Step 1: use Cropformer to get 2D instance masks for all sequences.
+    # # parallel_compute(f'python third_party/detectron2/projects/CropFormer/demo_cropformer/mask_predict.py --config-file third_party/detectron2/projects/CropFormer/configs/entityv2/entity_segmentation/cropformer_hornet_3x.yaml --root {root} --image_path_pattern {image_path_pattern} --dataset {args.dataset} --seq_name_list %s --opts MODEL.WEIGHTS {cropformer_path}', 'predict mask', 'cuda', CUDA_LIST, seq_name_list)
+    # parallel_compute(f'python third_party/detectron2/projects/CropFormer/demo_cropformer/mask_predict.py --config-file /workspace/MaskClustering/third_party/detectron2/projects/CropFormer/configs/entityv2/entity_segmentation/mask2former_hornet_3x.yaml --root {root} --image_path_pattern {image_path_pattern} --dataset {args.dataset} --seq_name_list %s --opts MODEL.WEIGHTS {cropformer_path}', 'predict mask', 'cuda', CUDA_LIST, seq_name_list)
 
     # # Step 2: Mask clustering using our proposed method.
     parallel_compute(f'python main.py --config {config} --seq_name_list %s', 'mask clustering', 'cuda', CUDA_LIST, seq_name_list)
@@ -124,8 +123,8 @@ def main(args):
     print('total time', (time.time() - t0)//60, 'min')
     print('Average time', (time.time() - t0) / len(seq_name_list), 'sec')
 
-    # Visualize Mask
-    parallel_compute(f'python -m visualize.vis_mask --config {config} --seq_name %s', 'Visualize Mask', 'cuda', CUDA_LIST, seq_name_list)
+    # # Visualize Mask
+    # parallel_compute(f'python -m visualize.vis_mask --config {config} --seq_name %s', 'Visualize Mask', 'cuda', CUDA_LIST, seq_name_list)
 
     # Visualize Scene
     parallel_compute(f'python -m visualize.vis_scene --config {config} --seq_name %s', 'Visualize Scene', 'cuda', CUDA_LIST, seq_name_list)

@@ -22,7 +22,8 @@ def main(args):
 
 if __name__ == '__main__':
     args = get_args()
-    seq_name_list = args.seq_name_list.split('+')
+    # seq_name_list = args.seq_name_list.split('+')
+    seq_name_list = ['scene0000_00']
 
     for seq_name in tqdm(seq_name_list):
         args.seq_name = seq_name

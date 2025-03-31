@@ -4,7 +4,7 @@ from utils.config import get_dataset, get_args
 import open3d as o3d
 
 # Since there are hundreds of objects in the scene, assigning visually distinguishable colors to each object is difficult. You can change the random seed to check if the two objects are actually segmented apart.
-np.random.seed(4)
+np.random.seed(6)
 
 def vis_one_object(point_ids, scene_points):
     points = scene_points[point_ids]
@@ -45,7 +45,7 @@ def main(args):
         labels.append(str(idx))
         centers.append(center)
         # If you want to visualize each object separately, you can uncomment the following line.
-        # v.add_points(f'{idx}', points, colors, visible=True, point_size=point_size)
+        v.add_points(f'{idx}', points, colors, visible=True, point_size=point_size)
 
     v.add_points('RGB', scene_points, scene_colors, visible=False, point_size=point_size)
 
@@ -53,7 +53,7 @@ def main(args):
     v.add_points('Instances', scene_points[labeled_scene_points_mask], instance_colors[labeled_scene_points_mask], visible=True, point_size=point_size)
 
     # If you want to visualize the label id of each object, you can uncomment the following line.
-    # v.add_labels('Labels', labels, centers, label_colors)
+    v.add_labels('Labels', labels, centers, label_colors)
 
     v.save(f'data/vis/{args.seq_name}')
 
