@@ -511,6 +511,57 @@ def create_point_cloud_from_frames(base_dir, stride=1, max_points_per_frame=1000
     pcd.colors = o3d.utility.Vector3dVector(all_colors)
     return pcd
 
+
+def create_downsampled_point_cloud(base_dir, stride=1, depth_trunc=0.005, buffer_size=10):
+    depth_dir = os.path.join(base_dir, 'depth')
+    color_dir = os.path.join(base_dir, 'color')
+    pose_dir = os.path.join(base_dir, 'pose')
+    intr_path = os.path.join(base_dir, 'intrinsic', 'intrinsic_depth.txt')
+
+    image_list = sorted(os.listdir(depth_dir), key=lambda x: int(x.split('.')[0]))
+    # end = int(image_list[-1].split('.')[0]) + 1
+    # frame_id_list = np.arange(0, end, stride)
+    # frame_ids = list(frame_id_list)
+    frame_ids = [x.split('.')[0] for x in image_list][::stride]
+    intrinisc_cam_parameters = get_intrinsics(image_size, intr_path)
+
+    full_pcd = o3d.geometry.PointCloud()
+    buffer_pcd = o3d.geometry.PointCloud()
+
+    with tqdm(total=len(frame_ids)) as pbar:
+        for i, fid in enumerate(frame_ids):
+            pbar.set_description(f"Pointcloud (Frame {fid})")
+            # Your processing code here
+            pbar.update(1)
+            # print(f"Processing frame {fid}...")
+
+            depth_path = os.path.join(depth_dir, f"{fid}.png")
+            depth = get_depth(depth_path)
+            color = imageio.v2.imread(os.path.join(color_dir, f"{fid}.jpg"))
+            # Resize color image to match depth image shape
+            if color.shape[:2] != depth.shape:
+                color = cv2.resize(color, (depth.shape[1], depth.shape[0]), interpolation=cv2.INTER_LINEAR)
+            extrinsics = read_pose(os.path.join(pose_dir, f"{fid}.txt"))
+
+            pcd = backproject(color, depth, intrinisc_cam_parameters, extrinsics)
+            buffer_pcd += pcd
+
+            if (i + 1) % buffer_size == 0:
+                buffer_pcd = buffer_pcd.voxel_down_sample(voxel_size=depth_trunc)
+                full_pcd += buffer_pcd
+                buffer_pcd.clear()
+
+        # Merge any remaining points in buffer
+        if len(buffer_pcd.points) > 0:
+            buffer_pcd = buffer_pcd.voxel_down_sample(voxel_size=depth_trunc)
+            full_pcd += buffer_pcd
+            buffer_pcd.clear()
+
+    full_pcd = full_pcd.voxel_down_sample(voxel_size=depth_trunc)
+
+    return full_pcd
+
+
 def save_voxel_grid_as_colored_point_cloud(voxel_grid, output_path):
     voxels = voxel_grid.get_voxels()
     voxel_size = voxel_grid.voxel_size
@@ -533,10 +584,10 @@ def save_voxel_grid_as_colored_point_cloud(voxel_grid, output_path):
 
 
 if __name__=="__main__":
-    scene_path = '/workspace/data/tasmap/capture_test/cook/2a77be2c-c48a-4fd1-b27e-c0153673f884/Kitchen-19107/Kitchen_cook/frames/extra_info'
+    scene_path = '/workspace/data/tasmap/capture_test/cook/2a77be2c-c48a-4fd1-b27e-c0153673f884/LivingDiningRoom-19050/LivingDiningRoom_cook/frames/extra_info'
 
     data_root_dir = os.path.join('/workspace/MaskClustering/data/tasmap', 'processed')
-    scene_name = 'scene0000_00'
+    scene_name = 'scene0001_00'
 
     data_dir = os.path.join(data_root_dir, scene_name)
     os.makedirs(data_dir, exist_ok=True)
@@ -544,28 +595,22 @@ if __name__=="__main__":
     # # save 2D images
     # save_2D(scene_path, data_dir)
 
-    # # save ply
-    # output_ply_path = os.path.join(data_dir, f'{scene_name}_vh_clean_2.ply')
-    # pcd = base_pointcloud(scene_path, downscale=32, realsense=False)
-    # o3d.visualization.draw(pcd, show_skybox=False, bg_color=(0,0,0,1))
-    # print("Saving pointcloud")
-    # o3d.io.write_point_cloud(output_ply_path, pcd[0]['geometry'], write_ascii=False)
-
-    # make ply
+    # pointcloud settings
     output_ply_path = os.path.join(data_dir, f'{scene_name}_vh_clean_2.ply')
     image_size = (1024, 1024)
     # image_size = (640, 480)
     depth_scale = 1000
-    max_points_per_frame=20000
-    max_total_points=500000
     stride = 1
+    depth_trunc=0.005
+    buffer_size = 30
 
-    pcd = create_point_cloud_from_frames(data_dir, stride=stride, max_points_per_frame=max_points_per_frame, max_total_points=max_total_points)
 
     # # save ply
+    # pcd = create_point_cloud_from_frames(data_dir, stride=stride, max_points_per_frame=max_points_per_frame, max_total_points=max_total_points)
     # o3d.io.write_point_cloud(output_ply_path, pcd, write_ascii=False)
 
     # save downsampled ply
+    pcd = create_downsampled_point_cloud(data_dir, stride=stride, depth_trunc=depth_trunc, buffer_size=buffer_size)
     voxel_size = 0.005
     pcd_down = pcd.voxel_down_sample(voxel_size=voxel_size)
     o3d.visualization.draw_geometries([pcd_down], window_name="Downsampled Point Cloud")
