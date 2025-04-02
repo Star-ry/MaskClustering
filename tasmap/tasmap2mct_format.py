@@ -519,9 +519,7 @@ def create_downsampled_point_cloud(base_dir, stride=1, depth_trunc=0.005, buffer
     intr_path = os.path.join(base_dir, 'intrinsic', 'intrinsic_depth.txt')
 
     image_list = sorted(os.listdir(depth_dir), key=lambda x: int(x.split('.')[0]))
-    # end = int(image_list[-1].split('.')[0]) + 1
-    # frame_id_list = np.arange(0, end, stride)
-    # frame_ids = list(frame_id_list)
+
     frame_ids = [x.split('.')[0] for x in image_list][::stride]
     intrinisc_cam_parameters = get_intrinsics(image_size, intr_path)
 
@@ -531,13 +529,12 @@ def create_downsampled_point_cloud(base_dir, stride=1, depth_trunc=0.005, buffer
     with tqdm(total=len(frame_ids)) as pbar:
         for i, fid in enumerate(frame_ids):
             pbar.set_description(f"Pointcloud (Frame {fid})")
-            # Your processing code here
             pbar.update(1)
-            # print(f"Processing frame {fid}...")
 
             depth_path = os.path.join(depth_dir, f"{fid}.png")
             depth = get_depth(depth_path)
             color = imageio.v2.imread(os.path.join(color_dir, f"{fid}.jpg"))
+
             # Resize color image to match depth image shape
             if color.shape[:2] != depth.shape:
                 color = cv2.resize(color, (depth.shape[1], depth.shape[0]), interpolation=cv2.INTER_LINEAR)
@@ -584,10 +581,14 @@ def save_voxel_grid_as_colored_point_cloud(voxel_grid, output_path):
 
 
 if __name__=="__main__":
-    scene_path = '/workspace/data/tasmap/capture_test/cook/2a77be2c-c48a-4fd1-b27e-c0153673f884/LivingDiningRoom-19050/LivingDiningRoom_cook/frames/extra_info'
+
+    scene_path = '/workspace/data/tasmap/capture_test/cook/2a77be2c-c48a-4fd1-b27e-c0153673f884/Kitchen-19107/Kitchen_cook/frames/extra_info'
+    scene_name = 'scene0000_00'
+
+    # scene_path = '/workspace/data/tasmap/capture_test/cook/2a77be2c-c48a-4fd1-b27e-c0153673f884/LivingDiningRoom-19050/LivingDiningRoom_cook/frames/extra_info'
+    # scene_name = 'scene0001_00'
 
     data_root_dir = os.path.join('/workspace/MaskClustering/data/tasmap', 'processed')
-    scene_name = 'scene0001_00'
 
     data_dir = os.path.join(data_root_dir, scene_name)
     os.makedirs(data_dir, exist_ok=True)
@@ -611,10 +612,8 @@ if __name__=="__main__":
 
     # save downsampled ply
     pcd = create_downsampled_point_cloud(data_dir, stride=stride, depth_trunc=depth_trunc, buffer_size=buffer_size)
-    voxel_size = 0.005
-    pcd_down = pcd.voxel_down_sample(voxel_size=voxel_size)
-    o3d.visualization.draw_geometries([pcd_down], window_name="Downsampled Point Cloud")
-    o3d.io.write_point_cloud(output_ply_path, pcd_down)
+    o3d.visualization.draw_geometries([pcd], window_name="Downsampled Point Cloud")
+    o3d.io.write_point_cloud(output_ply_path, pcd)
 
 
     # voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size=voxel_size)

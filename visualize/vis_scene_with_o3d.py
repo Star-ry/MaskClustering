@@ -76,4 +76,5 @@ def main(args):
 
 if __name__ == '__main__':
     args = get_args()
+    depth_trunc=0.005
     main(args)

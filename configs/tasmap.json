@@ -1,6 +1,6 @@
 {
     "mask_visible_threshold": 0.2,
-    "undersegment_filter_threshold": 0.15,
+    "undersegment_filter_threshold": 0.1,
     "view_consensus_threshold": 0.9,
     "contained_threshold": 0.8,
     "point_filter_threshold": 0.5,
