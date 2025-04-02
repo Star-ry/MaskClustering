@@ -1,5 +1,9 @@
 import numpy as np
 import pyviz3d.visualizer as viz
+import sys
+import os
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
 from utils.config import get_dataset, get_args
 import open3d as o3d
 
@@ -30,7 +34,7 @@ def main(args):
 
     v = viz.Visualizer()
 
-    pred = np.load(f'data/prediction/{args.config}_class_agnostic/{args.seq_name}.npz')
+    pred = np.load(f'/workspace/MaskClustering/data/prediction/{args.config}_class_agnostic/{args.seq_name}.npz')
     # pred = np.load(f'data/prediction/{args.config}/{args.seq_name}.npz')
 
     masks = pred['pred_masks']
@@ -55,7 +59,7 @@ def main(args):
     # If you want to visualize the label id of each object, you can uncomment the following line.
     v.add_labels('Labels', labels, centers, label_colors)
 
-    v.save(f'data/vis/{args.seq_name}')
+    v.save(f'/workspace/MaskClustering/data/vis/{args.seq_name}')
 
 
 if __name__ == '__main__':

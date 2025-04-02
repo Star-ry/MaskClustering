@@ -7,7 +7,7 @@ from dataset.demo import DemoDataset
 import json
 
 def update_args(args):
-    config_path = f'configs/{args.config}.json'
+    config_path = f'/workspace/MaskClustering/configs/{args.config}.json'
     with open(config_path, 'r') as f:
         config = json.load(f)
     for key in config:

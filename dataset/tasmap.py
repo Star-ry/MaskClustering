@@ -8,7 +8,7 @@ class TASMapDataset:
 
     def __init__(self, seq_name) -> None:
         self.seq_name = seq_name
-        self.root = f'./data/tasmap/processed/{seq_name}'
+        self.root = f'/workspace/MaskClustering/data/tasmap/processed/{seq_name}'
         self.rgb_dir = f'{self.root}/color'
         self.depth_dir = f'{self.root}/depth'
         self.segmentation_dir = f'{self.root}/output/mask'

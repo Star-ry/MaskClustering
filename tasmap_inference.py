@@ -117,7 +117,7 @@ def main(args):
     # # parallel_compute(f'python third_party/detectron2/projects/CropFormer/demo_cropformer/mask_predict.py --config-file third_party/detectron2/projects/CropFormer/configs/entityv2/entity_segmentation/cropformer_hornet_3x.yaml --root {root} --image_path_pattern {image_path_pattern} --dataset {args.dataset} --seq_name_list %s --opts MODEL.WEIGHTS {cropformer_path}', 'predict mask', 'cuda', CUDA_LIST, seq_name_list)
     # parallel_compute(f'python third_party/detectron2/projects/CropFormer/demo_cropformer/mask_predict.py --config-file /workspace/MaskClustering/third_party/detectron2/projects/CropFormer/configs/entityv2/entity_segmentation/mask2former_hornet_3x.yaml --root {root} --image_path_pattern {image_path_pattern} --dataset {args.dataset} --seq_name_list %s --opts MODEL.WEIGHTS {cropformer_path}', 'predict mask', 'cuda', CUDA_LIST, seq_name_list)
 
-    # # Step 2: Mask clustering using our proposed method.
+    # Step 2: Mask clustering using our proposed method.
     parallel_compute(f'python main.py --config {config} --seq_name_list %s', 'mask clustering', 'cuda', CUDA_LIST, seq_name_list)
     
     print('total time', (time.time() - t0)//60, 'min')
@@ -127,7 +127,8 @@ def main(args):
     # parallel_compute(f'python -m visualize.vis_mask --config {config} --seq_name %s', 'Visualize Mask', 'cuda', CUDA_LIST, seq_name_list)
 
     # Visualize Scene
-    parallel_compute(f'python -m visualize.vis_scene --config {config} --seq_name %s', 'Visualize Scene', 'cuda', CUDA_LIST, seq_name_list)
+    # parallel_compute(f'python -m visualize.vis_scene --config {config} --seq_name %s', 'Visualize Scene', 'cuda', CUDA_LIST, seq_name_list)
+    parallel_compute(f'python -m visualize.vis_scene_with_o3d --config {config} --seq_name %s', 'Visualize Scene', 'cuda', CUDA_LIST, seq_name_list)
 
     print("====> To Visualize in PyViz3D:")
     for seq_name in seq_name_list:

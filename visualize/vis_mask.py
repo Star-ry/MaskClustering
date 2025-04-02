@@ -48,4 +48,4 @@ if __name__ == '__main__':
     frame_list = dataset.get_frame_list(args.step)
     for frame_id in frame_list:
         main(dataset, vis_dir, frame_id)
-        break
+        # break

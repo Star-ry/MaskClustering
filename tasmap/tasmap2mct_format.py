@@ -533,16 +533,16 @@ def save_voxel_grid_as_colored_point_cloud(voxel_grid, output_path):
 
 
 if __name__=="__main__":
-    scene_path = '/workspace/data/tasmap/capture_test/cook/2a77be2c-c48a-4fd1-b27e-c0153673f884/Kitchen-19107/Kitchen_cook/test_frames/extra_info'
+    scene_path = '/workspace/data/tasmap/capture_test/cook/2a77be2c-c48a-4fd1-b27e-c0153673f884/Kitchen-19107/Kitchen_cook/frames/extra_info'
 
     data_root_dir = os.path.join('/workspace/MaskClustering/data/tasmap', 'processed')
-    scene_name = 'scene0001_00'
+    scene_name = 'scene0000_00'
 
     data_dir = os.path.join(data_root_dir, scene_name)
     os.makedirs(data_dir, exist_ok=True)
 
-    # save 2D images
-    save_2D(scene_path, data_dir)
+    # # save 2D images
+    # save_2D(scene_path, data_dir)
 
     # # save ply
     # output_ply_path = os.path.join(data_dir, f'{scene_name}_vh_clean_2.ply')
@@ -562,11 +562,18 @@ if __name__=="__main__":
 
     pcd = create_point_cloud_from_frames(data_dir, stride=stride, max_points_per_frame=max_points_per_frame, max_total_points=max_total_points)
 
-    # save ply
-    o3d.io.write_point_cloud(output_ply_path, pcd, write_ascii=False)
-    voxel_size = 0.01  # Adjust voxel size (smaller = more detail)
-    voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size=voxel_size)
-    o3d.visualization.draw_geometries([voxel_grid], window_name="ScanNet Point Cloud")
+    # # save ply
+    # o3d.io.write_point_cloud(output_ply_path, pcd, write_ascii=False)
 
-    voxel_output_path = os.path.join(data_dir, f'{scene_name}_voxel_colored.ply')
-    save_voxel_grid_as_colored_point_cloud(voxel_grid, voxel_output_path)
+    # save downsampled ply
+    voxel_size = 0.005
+    pcd_down = pcd.voxel_down_sample(voxel_size=voxel_size)
+    o3d.visualization.draw_geometries([pcd_down], window_name="Downsampled Point Cloud")
+    o3d.io.write_point_cloud(output_ply_path, pcd_down)
+
+
+    # voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd, voxel_size=voxel_size)
+    # o3d.visualization.draw_geometries([voxel_grid], window_name="ScanNet Point Cloud")
+
+    # voxel_output_path = os.path.join(data_dir, f'{scene_name}_voxel_colored.ply')
+    # save_voxel_grid_as_colored_point_cloud(voxel_grid, voxel_output_path)
