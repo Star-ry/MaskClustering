@@ -28,7 +28,7 @@ def main(args):
     scene_points = np.asarray(mesh.vertices)
     scene_points = scene_points - np.mean(scene_points, axis=0)
     scene_colors = np.asarray(mesh.vertex_colors)
-    scene_colors = np.power(scene_colors, 1/2.2)  # Brighten colors
+    # scene_colors = np.power(scene_colors, 1/2.2)  # Brighten colors
     scene_colors = np.clip(scene_colors, 0, 1)
 
     pred = np.load(f'/workspace/MaskClustering/data/prediction/{args.config}_class_agnostic/{args.seq_name}.npz')
@@ -52,14 +52,16 @@ def main(args):
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(points)
         pcd.colors = o3d.utility.Vector3dVector(colors)
-        instance = [{'name':f'obj_{idx}','group' : 'point_cloud', 'geometry':pcd}]
-
+        pcd = pcd.voxel_down_sample(voxel_size=depth_trunc)
+        instance = [{'name':f'obj_{idx}', 'group': 'instances', 'geometry':pcd}]
         instances_list += instance
+
 
     # RGB full point cloud (optional)
     full_scene = o3d.geometry.PointCloud()
     full_scene.points = o3d.utility.Vector3dVector(scene_points)
     full_scene.colors = o3d.utility.Vector3dVector(scene_colors)
+    full_scene = full_scene.voxel_down_sample(voxel_size=depth_trunc)
     full_scene_list = [{'name':'RGB','group' : 'point_cloud', 'geometry':full_scene}]
 
     # Combined instance-colored point cloud
@@ -67,14 +69,15 @@ def main(args):
     labeled_scene = o3d.geometry.PointCloud()
     labeled_scene.points = o3d.utility.Vector3dVector(scene_points[labeled_mask])
     labeled_scene.colors = o3d.utility.Vector3dVector(instance_colors[labeled_mask])
+    labeled_scene = labeled_scene.voxel_down_sample(voxel_size=depth_trunc)
     labeled_scene_list = [{'name':'labeled_scene','group' : 'point_cloud', 'geometry':labeled_scene}]
 
     # Draw the scene
     # o3d.visualization.draw_geometries(all_points, point_show_normal=False, width=1280, height=720)
-    vis.draw(instances_list+full_scene_list+labeled_scene_list, show_skybox=False, bg_color=(0,0,0,1))
+    vis.draw(instances_list+full_scene_list+labeled_scene_list, show_skybox=False, bg_color=(1,1,1,1))
 
 
 if __name__ == '__main__':
     args = get_args()
-    depth_trunc=0.005
+    depth_trunc = 0.01
     main(args)
