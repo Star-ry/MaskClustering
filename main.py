@@ -8,7 +8,7 @@ import os
 
 def main(args):
     dataset = get_dataset(args)
-    scene_points = dataset.get_scene_points()
+    scene_points = dataset.get_scene_points()   # pointcloud
     frame_list = dataset.get_frame_list(args.step)
     # if os.path.exists(os.path.join(dataset.object_dict_dir, args.config, f'object_dict.npy')):
     #     return

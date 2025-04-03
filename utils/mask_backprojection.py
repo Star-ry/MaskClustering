@@ -25,6 +25,16 @@ def backproject(depth, intrinisc_cam_parameters, extrinsics):
 
 
 def get_neighbor(valid_points, scene_points, lengths_1, lengths_2):
+    """ 
+
+    valid_points 각각에 대해 radius 내에 있는 scene_points들 중 상위 K개 선택
+
+    Args:
+        valid_points: 기준 points들
+        scene_points: 전체 scene중 valid_points이 있을 것이라고 생각되는 일부분들 (3D bbox 형태)
+    Returns:
+        neighbor_in_scene_pcld: valid_point들에 가까운 scene_points들 idx들
+    """
     _, neighbor_in_scene_pcld, _ = ball_query(valid_points, scene_points, lengths_1, lengths_2, K=20, radius=DISTANCE_THRESHOLD, return_nn=False)
     return neighbor_in_scene_pcld
 
@@ -36,10 +46,21 @@ def get_depth_mask(depth):
 
 
 def crop_scene_points(mask_points, scene_points):
+    """Crops scene points in 3D bbox based on a 2D mask's 3D back projection.
+
+        Args:
+            mask_points: 2D mask's 3D back-projected points.
+            scene_points: Input point cloud.
+
+        Returns:
+            cropped_scene_points: Abstract subset of scene_points within mask_points bounds.
+            selected_point_ids: Indices of selected points in scene_points.
+    """
     x_min, x_max = torch.min(mask_points[:, 0]), torch.max(mask_points[:, 0])
     y_min, y_max = torch.min(mask_points[:, 1]), torch.max(mask_points[:, 1])
     z_min, z_max = torch.min(mask_points[:, 2]), torch.max(mask_points[:, 2])
 
+    # mask_points에 해당하는 scene_points 후보들 추출
     selected_point_mask = (scene_points[:, 0] > x_min) & (scene_points[:, 0] < x_max) & (scene_points[:, 1] > y_min) & (scene_points[:, 1] < y_max) & (scene_points[:, 2] > z_min) & (scene_points[:, 2] < z_max)
     selected_point_ids = torch.where(selected_point_mask)[0]
     cropped_scene_points = scene_points[selected_point_ids]
@@ -68,14 +89,15 @@ def turn_mask_to_point(dataset, scene_points, mask_image, frame_id):
     scene_points_num_list = []
     selected_point_ids_list = []
     initial_valid_mask_ids = []
+    # mask_point의 scene_point에서의 대략적인 위치 파악 (3D bbox)
     for mask_id in ids:
         if mask_id == 0:
             continue
         segmentation = mask_image == mask_id
-        valid_mask = segmentation[depth_mask].cpu().numpy()
+        valid_mask = segmentation[depth_mask].cpu().numpy()     # 한 mask에 대한 depth, mask가 있는 부분만 1 나머지 0
 
         mask_pcld = o3d.geometry.PointCloud()
-        mask_points = view_points[valid_mask]
+        mask_points = view_points[valid_mask]   # 한 mask의 backprojection 결과
         if len(mask_points) < FEW_POINTS_THRESHOLD:
             continue
         mask_pcld.points = o3d.utility.Vector3dVector(mask_points)
@@ -109,15 +131,16 @@ def turn_mask_to_point(dataset, scene_points, mask_image, frame_id):
     mask_info = {}
     frame_point_ids = set()
 
+    # mask들이 scene_point에 해당하는 가장 가까운
     for i, mask_id in enumerate(initial_valid_mask_ids):
         mask_neighbor = neighbor_in_scene_pcld[i] # P, 20
         mask_point_num = mask_points_num_list[i] # Pi
         mask_neighbor = mask_neighbor[:mask_point_num] # Pi, 20
 
         valid_neighbor = mask_neighbor != -1 # Pi, 20
-        neighbor = torch.unique(mask_neighbor[valid_neighbor])
+        neighbor = torch.unique(mask_neighbor[valid_neighbor])  # mask의 여러점이 한점의 scene_point에 할당된 경우 중복제거
         neighbor_in_complete_scene_points = selected_point_ids_list[i][neighbor].cpu().numpy()
-        coverage = torch.any(valid_neighbor, dim=1).sum().item() / mask_point_num
+        coverage = torch.any(valid_neighbor, dim=1).sum().item() / mask_point_num   # coverage:얼마나 많은 마스크 포인트들이 적어도 하나의 이웃을 가졌는지 
 
         if coverage < COVERAGE_THRESHOLD:
             continue
